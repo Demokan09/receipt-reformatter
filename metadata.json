@@ -1,0 +1,5 @@
+{
+  "name": "Receipt Reformatter AI",
+  "description": "Transform messy, crumpled receipt photos into clean, structured digital records using Gemini AI.",
+  "requestFramePermissions": []
+}
