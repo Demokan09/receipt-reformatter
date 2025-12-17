@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ReceiptData } from '../types';
-import { Check, Copy, Calendar, MapPin, User, FileCheck, RefreshCw, Printer, Tag, Cake, ImagePlus, AlertCircle, Loader2, Building2, Pencil } from 'lucide-react';
+import { Check, Copy, Calendar, MapPin, User, FileCheck, RefreshCw, Printer, Tag, Cake, ImagePlus, AlertCircle, Loader2, Building2, Pencil, Activity } from 'lucide-react';
 
 interface ReceiptViewerProps {
   data: ReceiptData;
@@ -10,8 +10,7 @@ interface ReceiptViewerProps {
 export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) => {
   const [copied, setCopied] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [customLogo, setCustomLogo] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // CONSTANTS
   const ISSUING_COMPANY = "MEDLIFE ASSISTANCE";
@@ -190,10 +189,13 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
             .rounded-lg, .rounded-sm, .rounded-md { border-radius: 0 !important; }
             .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl { box-shadow: none !important; }
 
-            /* Ensure all text is black for crisp printing */
-            * { color: black !important; }
-            .text-slate-400, .text-slate-500, .text-slate-600 { color: #333 !important; }
-            .text-red-600 { color: black !important; } /* Even discounts */
+            /* Ensure colors are preserved */
+            * { 
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            /* .text-slate-400, .text-slate-500, .text-slate-600 { color: #333 !important; } */
+            /* .text-red-600 { color: black !important; } */
           }
         </style>
       </head>
@@ -230,20 +232,9 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCustomLogo(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const triggerLogoUpload = () => {
-    fileInputRef.current?.click();
-  };
+
+
 
   const getInitials = (name: string) => {
     return name
@@ -306,43 +297,27 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
 
           {/* Invoice Header */}
           <div className="p-10 pb-6">
-            <div className="flex justify-between items-start mb-12">
+            <div className="flex justify-between items-start mb-24">
               <div className="flex gap-5 items-start">
-                {/* Logo Upload Section */}
-                <div
-                  onClick={triggerLogoUpload}
-                  className="relative group w-20 h-20 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-200 cursor-pointer overflow-hidden transition-colors hover:border-slate-300 hover:bg-slate-100"
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    accept="image/*"
-                  />
-
-                  {customLogo ? (
-                    <img src={customLogo} alt="Logo" className="w-full h-full object-contain p-1" />
-                  ) : (
-                    <span className="text-3xl font-black text-slate-900 tracking-tighter group-hover:opacity-20 transition-opacity">
-                      {getInitials(ISSUING_COMPANY)}
+                {/* Logo Upload Section - Expanded */}
+                {/* Fixed Logo Section */}
+                <div className="flex flex-col items-center select-none cursor-default py-2 pr-4">
+                  <div className="flex items-center tracking-tight">
+                    <span
+                      className="text-[#D4AF37] font-black italic text-5xl mr-0.5 print:text-[#D4AF37]"
+                      style={{
+                        fontFamily: 'Inter, sans-serif',
+                        printColorAdjust: 'exact',
+                        WebkitPrintColorAdjust: 'exact'
+                      }}
+                    >
+                      MED
                     </span>
-                  )}
-
-                  {/* Hover Overlay - Hidden in Print via no-print class */}
-                  <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity duration-200 no-print">
-                    <ImagePlus className="w-6 h-6 text-slate-700" />
-                    <span className="text-[10px] font-bold text-slate-700 uppercase mt-1">Change</span>
+                    <span className="text-slate-900 font-bold text-5xl">Life</span>
+                    <Activity className="w-10 h-10 text-slate-900 ml-1.5 stroke-[3]" />
                   </div>
-                </div>
-
-                <div>
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none mb-2">
-                    {ISSUING_COMPANY}
-                  </h1>
-                  {/* Category Badge */}
-                  <span className="inline-block px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200">
-                    {data.category}
+                  <span className="text-slate-400 font-bold text-[11px] tracking-[0.35em] uppercase w-full text-center -mt-1 pl-1">
+                    ASSISTANCE
                   </span>
                 </div>
               </div>
@@ -477,58 +452,8 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
             </table>
           </div>
 
-          {/* Financial Summary & Bank Details */}
-          <div className="px-10 pt-2 pb-10 flex flex-col md:flex-row gap-12 justify-between">
-
-            {/* Bank Details (Bottom Left) */}
-            <div className="flex-1">
-              {data.bankDetails && (data.bankDetails.iban || data.bankDetails.accountNumber) && (
-                <div className="bg-slate-50 rounded-lg p-5 border border-slate-100 text-sm space-y-2 max-w-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    <h4 className="font-bold text-slate-700 uppercase tracking-wider text-xs">Payment Instructions</h4>
-                  </div>
-                  {data.bankDetails.accountName && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Beneficiary</span>
-                      <span className="font-medium text-slate-900">{data.bankDetails.accountName}</span>
-                    </div>
-                  )}
-                  {data.bankDetails.bankName && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Bank Name</span>
-                      <span className="font-medium text-slate-900">{data.bankDetails.bankName}</span>
-                    </div>
-                  )}
-                  {data.bankDetails.location && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Location / Branch</span>
-                      <span className="font-medium text-slate-900">{data.bankDetails.location}</span>
-                    </div>
-                  )}
-                  {data.bankDetails.iban && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">IBAN</span>
-                      <span className="font-mono text-slate-700">{data.bankDetails.iban}</span>
-                    </div>
-                  )}
-                  {!data.bankDetails.iban && data.bankDetails.accountNumber && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Account No</span>
-                      <span className="font-mono text-slate-700">{data.bankDetails.accountNumber}</span>
-                    </div>
-                  )}
-                  {data.bankDetails.swift && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">SWIFT / BIC</span>
-                      <span className="font-mono text-slate-700">{data.bankDetails.swift}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Totals (Bottom Right) */}
+          {/* Totals Section (Right-aligned, immediately after table) */}
+          <div className="px-10 pt-2 pb-6 flex justify-end">
             <div className="w-72 space-y-3">
               <div className="flex justify-between text-slate-500 text-sm">
                 <span>Subtotal</span>
@@ -555,6 +480,68 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
                   {formatCurrency(data.total, data.currency)}
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* Payment Instructions (Left-aligned, below Totals, with spacing) */}
+          <div className="px-10 pt-6 pb-10">
+            {data.bankDetails && (data.bankDetails.iban || data.bankDetails.accountNumber) && (
+              <div className="bg-slate-50 rounded-lg p-5 border border-slate-100 text-sm space-y-2 max-w-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                  <h4 className="font-bold text-slate-700 uppercase tracking-wider text-xs">Payment Instructions</h4>
+                </div>
+                {data.bankDetails.accountName && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Beneficiary</span>
+                    <span className="font-medium text-slate-900">{data.bankDetails.accountName}</span>
+                  </div>
+                )}
+                {data.bankDetails.bankName && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Bank Name</span>
+                    <span className="font-medium text-slate-900">{data.bankDetails.bankName}</span>
+                  </div>
+                )}
+                {data.bankDetails.location && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Location / Branch</span>
+                    <span className="font-medium text-slate-900">{data.bankDetails.location}</span>
+                  </div>
+                )}
+                {data.bankDetails.iban && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">IBAN</span>
+                    <span className="font-mono text-slate-700">{data.bankDetails.iban}</span>
+                  </div>
+                )}
+                {!data.bankDetails.iban && data.bankDetails.accountNumber && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Account No</span>
+                    <span className="font-mono text-slate-700">{data.bankDetails.accountNumber}</span>
+                  </div>
+                )}
+                {data.bankDetails.swift && (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">SWIFT / BIC</span>
+                    <span className="font-mono text-slate-700">{data.bankDetails.swift}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Digital Signature Section - Aligned with Totals */}
+          <div className="px-10 pb-12 flex justify-end">
+            <div className="w-72 flex flex-col items-center">
+              <div className="w-full relative px-6 mb-1">
+                <img
+                  src="/assets/medlife-stamp-transparent.png"
+                  alt="MEDLIFE Official Stamp"
+                  className="w-full object-contain opacity-90 rotate-[-2deg] mix-blend-multiply scale-110 contrast-125 brightness-110"
+                />
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0 z-10 relative">Authorized Signature & Stamp</span>
             </div>
           </div>
 
