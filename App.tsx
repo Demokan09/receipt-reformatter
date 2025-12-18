@@ -6,6 +6,7 @@ import { processReceiptWithGemini } from './services/geminiService';
 import { Sparkles, Scan, Loader2, CheckCircle2, FileText, LayoutTemplate, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
+  // Force rebuild comment
   const [file, setFile] = useState<UploadedFile | null>(null);
   const [data, setData] = useState<ReceiptData | null>(null);
   const [processing, setProcessing] = useState<ProcessingState>({ status: 'idle' });
@@ -36,15 +37,15 @@ const App: React.FC = () => {
   const handleFileSelected = async (uploadedFile: UploadedFile) => {
     setFile(uploadedFile);
     setProcessing({ status: 'analyzing', message: 'Starting analysis...' });
-    
+
     try {
       const result = await processReceiptWithGemini(uploadedFile.base64, uploadedFile.file.type);
       setData(result);
       setProcessing({ status: 'complete' });
     } catch (error) {
-      setProcessing({ 
-        status: 'error', 
-        message: error instanceof Error ? error.message : "Something went wrong during processing." 
+      setProcessing({
+        status: 'error',
+        message: error instanceof Error ? error.message : "Something went wrong during processing."
       });
     }
   };
@@ -81,7 +82,7 @@ const App: React.FC = () => {
           <div className="flex flex-col items-center justify-center min-h-[65vh] animate-fade-in-up">
             <div className="text-center mb-16 max-w-2xl px-4">
               <h1 className="text-5xl sm:text-6xl font-extrabold text-slate-900 mb-6 tracking-tight">
-                Turn messy paper into <br/>
+                Turn messy paper into <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
                   perfect digital records.
                 </span>
@@ -103,31 +104,31 @@ const App: React.FC = () => {
                   <Scan className="w-4 h-4" /> Original Document
                 </h3>
               </div>
-              
+
               <div className="flex-1 relative overflow-hidden bg-slate-100/50 flex items-center justify-center p-8 group">
-                 {/* Background pattern */}
-                 <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-40"></div>
-                 
-                 <div className="relative z-10 max-h-full max-w-full shadow-2xl rounded-lg overflow-hidden transition-transform duration-700 hover:scale-[1.02] ring-1 ring-black/5">
-                   {processing.status === 'analyzing' && (
-                     <div className="absolute inset-0 z-20 bg-indigo-900/10 pointer-events-none overflow-hidden rounded-lg">
-                       <div className="w-full h-1.5 bg-indigo-400/90 shadow-[0_0_20px_rgba(99,102,241,0.6)] animate-scan"></div>
-                     </div>
-                   )}
-                   
-                   {file.type === 'image' ? (
-                     <img 
-                      src={file.previewUrl} 
-                      alt="Receipt Original" 
-                      className="max-h-[60vh] object-contain bg-white" 
-                     />
-                   ) : (
-                      <div className="w-64 h-80 bg-white flex flex-col items-center justify-center rounded-lg shadow-sm">
-                        <FileText className="w-12 h-12 text-slate-300 mb-4" />
-                        <span className="font-medium text-slate-500">PDF Document</span>
-                      </div>
-                   )}
-                 </div>
+                {/* Background pattern */}
+                <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-40"></div>
+
+                <div className="relative z-10 max-h-full max-w-full shadow-2xl rounded-lg overflow-hidden transition-transform duration-700 hover:scale-[1.02] ring-1 ring-black/5">
+                  {processing.status === 'analyzing' && (
+                    <div className="absolute inset-0 z-20 bg-indigo-900/10 pointer-events-none overflow-hidden rounded-lg">
+                      <div className="w-full h-1.5 bg-indigo-400/90 shadow-[0_0_20px_rgba(99,102,241,0.6)] animate-scan"></div>
+                    </div>
+                  )}
+
+                  {file.type === 'image' ? (
+                    <img
+                      src={file.previewUrl}
+                      alt="Receipt Original"
+                      className="max-h-[60vh] object-contain bg-white"
+                    />
+                  ) : (
+                    <div className="w-64 h-80 bg-white flex flex-col items-center justify-center rounded-lg shadow-sm">
+                      <FileText className="w-12 h-12 text-slate-300 mb-4" />
+                      <span className="font-medium text-slate-500">PDF Document</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -144,27 +145,25 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-6 relative">
                       {/* Vertical line connector */}
                       <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-gray-100 -z-10"></div>
-                      
+
                       {loadingMessages.map((step, idx) => {
                         const Icon = step.icon;
                         const isActive = idx === loadingStep;
                         const isCompleted = idx < loadingStep;
-                        
+
                         return (
-                          <div 
+                          <div
                             key={idx}
-                            className={`flex items-center gap-4 transition-all duration-500 ${
-                              idx <= loadingStep + 1 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
-                            }`}
+                            className={`flex items-center gap-4 transition-all duration-500 ${idx <= loadingStep + 1 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
+                              }`}
                           >
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors duration-500 z-10 ${
-                              isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors duration-500 z-10 ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' :
                               isActive ? 'bg-white border-indigo-600 text-indigo-600 shadow-md scale-110' : 'bg-white border-gray-200 text-gray-300'
-                            }`}>
+                              }`}>
                               {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                             </div>
                             <div>
@@ -188,7 +187,7 @@ const App: React.FC = () => {
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">Processing Failed</h3>
                   <p className="text-slate-600 mb-8 max-w-xs mx-auto leading-relaxed">{processing.message}</p>
-                  <button 
+                  <button
                     onClick={handleReset}
                     className="px-8 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all hover:scale-105 shadow-xl shadow-slate-900/20"
                   >
@@ -198,7 +197,11 @@ const App: React.FC = () => {
               )}
 
               {data && processing.status === 'complete' && (
-                <ReceiptViewer data={data} onReset={handleReset} />
+                <ReceiptViewer
+                  data={data}
+                  onReset={handleReset}
+                  onDateChange={(newDate) => setData((prev) => prev ? { ...prev, date: newDate } : null)}
+                />
               )}
             </div>
           </div>

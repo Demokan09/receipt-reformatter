@@ -40,6 +40,12 @@ export const processReceiptWithGemini = async (
        - Extract specific "Location" or address fields for the bank (e.g., "KUSADASI-AYDIN").
        - These are often found at the bottom of invoices. Extract them into the 'bankDetails' object.
 
+    5. **MEDICAL REPORT DETAILS**:
+       - **Reference Numbers**: 'Our Ref No', 'Your Ref No'
+       - **Insurance**: 'Insurance Company', 'Policy Number'
+       - **Clinical Info**: Extract full text blocks for 'Diagnosis', 'Complaint', 'History', 'Physical Examination', 'Treatment', 'Prognosis'. Maintain original formatting/newlines if possible.
+       - **Dates**: 'Admission Date/Hour', 'Discharged Date/Hour', 'Travel Dates'.
+
     Output strictly valid JSON matching the schema.
     - Currency: ISO 4217 code.
     - Date: YYYY-MM-DD.
@@ -69,11 +75,11 @@ export const processReceiptWithGemini = async (
             merchantName: { type: Type.STRING },
             merchantAddress: { type: Type.STRING, nullable: true },
             merchantPhone: { type: Type.STRING, nullable: true },
-            
+
             date: { type: Type.STRING },
             time: { type: Type.STRING, nullable: true },
             invoiceNumber: { type: Type.STRING, nullable: true },
-            
+
             clientName: { type: Type.STRING, nullable: true },
             clientPassport: { type: Type.STRING, nullable: true },
             clientCountry: { type: Type.STRING, nullable: true },
@@ -99,7 +105,7 @@ export const processReceiptWithGemini = async (
             tip: { type: Type.NUMBER, nullable: true },
             total: { type: Type.NUMBER },
             currency: { type: Type.STRING },
-            
+
             bankDetails: {
               type: Type.OBJECT,
               nullable: true,
@@ -110,6 +116,29 @@ export const processReceiptWithGemini = async (
                 accountNumber: { type: Type.STRING, nullable: true },
                 iban: { type: Type.STRING, nullable: true },
                 swift: { type: Type.STRING, nullable: true },
+              }
+            },
+
+            medicalDetails: {
+              type: Type.OBJECT,
+              nullable: true,
+              properties: {
+                ourRefNo: { type: Type.STRING, nullable: true },
+                yourRefNo: { type: Type.STRING, nullable: true },
+                hotel: { type: Type.STRING, nullable: true },
+                roomNo: { type: Type.STRING, nullable: true },
+                patientPhone: { type: Type.STRING, nullable: true },
+                insurance: { type: Type.STRING, nullable: true },
+                policyNumber: { type: Type.STRING, nullable: true },
+                admissionDate: { type: Type.STRING, nullable: true },
+                dischargeDate: { type: Type.STRING, nullable: true },
+                travelDates: { type: Type.STRING, nullable: true },
+                diagnosis: { type: Type.STRING, nullable: true },
+                complaint: { type: Type.STRING, nullable: true },
+                history: { type: Type.STRING, nullable: true },
+                physicalExamination: { type: Type.STRING, nullable: true },
+                treatment: { type: Type.STRING, nullable: true },
+                prognosis: { type: Type.STRING, nullable: true },
               }
             },
 

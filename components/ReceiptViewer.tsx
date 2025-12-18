@@ -5,9 +5,10 @@ import { Check, Copy, Calendar, MapPin, User, FileCheck, RefreshCw, Printer, Tag
 interface ReceiptViewerProps {
   data: ReceiptData;
   onReset: () => void;
+  onDateChange: (newDate: string) => void;
 }
 
-export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) => {
+export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset, onDateChange }) => {
   const [copied, setCopied] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -48,7 +49,19 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
 
     // 3. Construct the HTML document
     // Clean up contentEditable attributes for the PDF output so it looks static
-    let contentHTML = receiptContent.innerHTML;
+    // CLONE the content first so we can modify it for print without affecting the live view
+    const clonedContent = receiptContent.cloneNode(true) as HTMLElement;
+
+    // Fix inputs: explicitly set the 'value' attribute so it appears in innerHTML
+    const inputs = clonedContent.querySelectorAll('input');
+    const originalInputs = receiptContent.querySelectorAll('input');
+
+    inputs.forEach((input, index) => {
+      // Transfer current value from the live input to the cloned input's attribute
+      input.setAttribute('value', originalInputs[index].value);
+    });
+
+    let contentHTML = clonedContent.innerHTML;
     contentHTML = contentHTML.replace(/contenteditable="true"/gi, '');
 
     const fullHTML = `
@@ -236,6 +249,23 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
 
 
 
+  const getInputValue = (dateString: string) => {
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  const handleDateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onDateChange(e.target.value);
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -295,134 +325,181 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
           {/* Top Color Bar */}
           <div className="h-2 w-full bg-slate-900"></div>
 
-          {/* Invoice Header */}
-          <div className="p-10 pb-6">
-            <div className="flex justify-between items-start mb-24">
-              <div className="flex gap-5 items-start">
-                {/* Logo Upload Section - Expanded */}
-                {/* Fixed Logo Section */}
-                <div className="flex flex-col items-center select-none cursor-default py-2 pr-4">
-                  <div className="flex items-center tracking-tight">
-                    <span
-                      className="text-[#D4AF37] font-black italic text-5xl mr-0.5 print:text-[#D4AF37]"
-                      style={{
-                        fontFamily: 'Inter, sans-serif',
-                        printColorAdjust: 'exact',
-                        WebkitPrintColorAdjust: 'exact'
-                      }}
-                    >
-                      MED
-                    </span>
-                    <span className="text-slate-900 font-bold text-5xl">Life</span>
-                    <Activity className="w-10 h-10 text-slate-900 ml-1.5 stroke-[3]" />
-                  </div>
-                  <span className="text-slate-400 font-bold text-[11px] tracking-[0.35em] uppercase w-full text-center -mt-1 pl-1">
-                    ASSISTANCE
-                  </span>
+          {/* Logo & Date Header */}
+          <div className="flex justify-between items-start px-8 pt-8 pb-4">
+            {/* Logo - Top Left */}
+            <div className="flex flex-col items-center select-none cursor-default">
+              <div className="flex items-center tracking-tight transform scale-90 origin-left">
+                <span
+                  className="text-[#D4AF37] font-black italic text-5xl mr-0.5"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  MED
+                </span>
+                <span className="text-slate-900 font-bold text-5xl">Life</span>
+                <Activity className="w-10 h-10 text-slate-900 ml-1.5 stroke-[3]" />
+              </div>
+              <span className="text-slate-400 font-bold text-[11px] tracking-[0.35em] uppercase w-full text-center -mt-1 pl-1">
+                ASSISTANCE
+              </span>
+            </div>
+
+            {/* Editable Date - Top Right */}
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date</span>
+              <div className="group/edit relative flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={getInputValue(data.date)}
+                    onChange={handleDateInput}
+                    className="text-right font-mono font-bold text-slate-900 bg-transparent outline-none border-b border-transparent hover:border-slate-200 focus:border-indigo-500 transition-colors w-[140px] appearance-none [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-80 p-0"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Medical Report Header */}
+          <div className="p-8 pb-4">
+            <div className="border-b-2 border-slate-900 mb-6 pb-2 text-center">
+              <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">MEDICAL REPORT</h1>
+            </div>
+
+            <div className="flex flex-col gap-1 text-xs text-slate-900 font-bold tracking-tight">
+              {/* Row 1: Name & Our Ref */}
+              <div className="flex justify-between items-baseline min-h-[1.25rem]">
+                <div className="flex gap-2">
+                  <span className="w-32 shrink-0 uppercase text-slate-900">NAME&SURNAME:</span>
+                  <span className="font-medium text-slate-900 truncate">{data.clientName || '______________________'}</span>
+                </div>
+                {/* Strictly aligned right column */}
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">OUR REF. NO :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.ourRefNo || ''}</span>
                 </div>
               </div>
 
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Receipt / Invoice</p>
-                <div className="flex items-center justify-end gap-2 group/edit cursor-text relative">
-                  <span className="text-3xl font-mono font-bold text-slate-900 tracking-tight">#</span>
-                  <span
-                    contentEditable
-                    suppressContentEditableWarning
-                    className="text-3xl font-mono font-bold text-slate-900 tracking-tight outline-none border-b border-transparent hover:border-slate-200 focus:border-indigo-500 transition-colors min-w-[60px] text-right"
-                    title="Click to edit invoice number"
-                  >
-                    {data.invoiceNumber || data.date.replace(/-/g, '').slice(2)}
-                  </span>
-                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover/edit:opacity-100 transition-opacity no-print">
-                    <Pencil className="w-4 h-4 text-slate-400" />
+              {/* Row 2: DOB & Your Ref */}
+              <div className="flex justify-between items-baseline min-h-[1.25rem]">
+                <div className="flex gap-2">
+                  <span className="w-32 shrink-0 uppercase text-slate-900">DATE OF BIRTH :</span>
+                  <span className="font-medium text-slate-900">{data.clientBirthDate || ''}</span>
+                </div>
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">YOUR REF. NO :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.yourRefNo || ''}</span>
+                </div>
+              </div>
+
+              {/* Row 3: Address & Hotel/Room */}
+              <div className="flex justify-between items-baseline min-h-[1.25rem]">
+                <div className="flex gap-2">
+                  <span className="w-32 shrink-0 uppercase text-slate-900">HOME ADDRESS :</span>
+                  <span className="font-medium text-left text-slate-900">{data.clientCountry || ''}</span>
+                </div>
+                {/* Hotel Row - Special Case: Hotel aligned with other labels, Room in value space */}
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">HOTEL :</span>
+                  <div className="flex justify-end gap-3 font-medium text-slate-900">
+                    <span className="truncate max-w-[80px]">{data.medicalDetails?.hotel || ''}</span>
+                    <div className="flex gap-1 shrink-0">
+                      <span className="uppercase">ROOM NO :</span>
+                      <span className="font-mono">{data.medicalDetails?.roomNo || ''}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 text-slate-500 mt-2 font-medium">
-                  <Calendar className="w-4 h-4" />
-                  <span>{data.date}</span>
+              </div>
+
+              {/* Row 4: Insurance & Patient Phone */}
+              <div className="flex justify-between items-baseline mt-4 min-h-[1.25rem]">
+                <div className="flex gap-2">
+                  <span className="w-32 shrink-0 uppercase text-slate-900">INSURANCE :</span>
+                  <span className="font-medium text-slate-900">{data.medicalDetails?.insurance || ''}</span>
+                </div>
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">PATIENT'S PHONE :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.patientPhone || ''}</span>
+                </div>
+              </div>
+
+              {/* Row 5: Travel Dates & Policy */}
+              <div className="flex justify-between items-baseline min-h-[1.25rem]">
+                <div className="flex gap-2">
+                  <span className="w-32 shrink-0 uppercase text-slate-900">TRAVEL DATES :</span>
+                  <span className="font-medium text-slate-900">{data.medicalDetails?.travelDates || '/'}</span>
+                </div>
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">POLICY NUMBER :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.policyNumber || ''}</span>
+                </div>
+              </div>
+
+              {/* Row 6: Admission Date */}
+              <div className="flex justify-end mt-1 min-h-[1.25rem]">
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">ADMISION DATE / HOUR :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.admissionDate || data.serviceDate || ''}</span>
+                </div>
+              </div>
+
+              {/* Row 7: Discharge Date */}
+              <div className="flex justify-end min-h-[1.25rem]">
+                <div className="grid grid-cols-[160px_180px] gap-3">
+                  <span className="uppercase text-right text-slate-900">DISCHARGED DATE / HOUR :</span>
+                  <span className="font-medium font-mono text-right text-slate-900">{data.medicalDetails?.dischargeDate || ''}</span>
                 </div>
               </div>
             </div>
 
-            {/* Addresses Grid */}
-            <div className="grid grid-cols-2 gap-12 mb-12 border-t border-slate-100 pt-8">
-              {/* Service Provider Column */}
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
-                  Service Provider
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <p className="font-bold text-slate-900 text-base">{data.merchantName}</p>
-                  {data.merchantAddress && (
-                    <div className="flex items-start gap-3 text-slate-500">
-                      <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{data.merchantAddress}</span>
-                    </div>
-                  )}
-                  {data.merchantPhone && (
-                    <p className="text-slate-500 ml-7">
-                      {data.merchantPhone}
-                    </p>
-                  )}
-                </div>
-              </div>
+            {/* Divider Line */}
+            <div className="border-b-2 border-slate-900 mt-4 mb-4"></div>
+          </div>
 
-              {/* Billed To Client Column */}
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
-                  Billed To / Client
-                </h4>
-                {data.clientName ? (
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-3">
-                      <User className="w-4 h-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-slate-900 text-base">{data.clientName}</p>
-                        {data.clientCountry && (
-                          <p className="text-slate-500 uppercase text-xs font-semibold mt-0.5 tracking-wide">
-                            {data.clientCountry}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {data.clientBirthDate && (
-                      <div className="flex items-center gap-3 text-slate-600 ml-1">
-                        <Cake className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="font-mono font-medium text-xs">
-                          <span className="text-slate-400 mr-2 uppercase text-[10px] font-bold">DOB:</span>
-                          {data.clientBirthDate}
-                        </span>
-                      </div>
-                    )}
-
-                    {data.clientPassport && (
-                      <div className="flex items-center gap-3 text-slate-600 mt-2">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">ID</span>
-                        <span className="font-mono font-medium bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                          {data.clientPassport}
-                        </span>
-                      </div>
-                    )}
+          {/* Medical Report Body */}
+          {(data.medicalDetails?.diagnosis || data.medicalDetails?.history) && (
+            <div className="px-10 pb-8 mb-4 border-b-4 border-double border-slate-100">
+              <div className="grid grid-cols-1 gap-6">
+                {data.medicalDetails.diagnosis && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">DIAGNOSIS</h4>
+                    <p className="text-sm font-medium text-slate-700 uppercase leading-relaxed">{data.medicalDetails.diagnosis}</p>
                   </div>
-                ) : (
-                  <div className="text-slate-400 italic flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    Client details not detected
+                )}
+                {data.medicalDetails.complaint && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">COMPLAINT</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed uppercase">{data.medicalDetails.complaint}</p>
+                  </div>
+                )}
+                {data.medicalDetails.history && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">HISTORY</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed uppercase text-justify">{data.medicalDetails.history}</p>
+                  </div>
+                )}
+                {data.medicalDetails.physicalExamination && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">PHYSICAL EXAMINATION</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed uppercase text-justify">{data.medicalDetails.physicalExamination}</p>
+                  </div>
+                )}
+                {data.medicalDetails.treatment && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">TREATMENT</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed uppercase">{data.medicalDetails.treatment}</p>
+                  </div>
+                )}
+                {data.medicalDetails.prognosis && (
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-slate-900 mb-1">PROGNOSIS</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed uppercase">{data.medicalDetails.prognosis}</p>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Service Date if separate */}
-            {data.serviceDate && (
-              <div className="mb-10 p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Service / Admission Date</span>
-                <span className="font-mono font-bold text-slate-900">{data.serviceDate}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Line Items Table */}
           <div className="px-10 pb-4">
@@ -485,50 +562,36 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ data, onReset }) =
 
           {/* Payment Instructions (Left-aligned, below Totals, with spacing) */}
           <div className="px-10 pt-6 pb-10">
-            {data.bankDetails && (data.bankDetails.iban || data.bankDetails.accountNumber) && (
-              <div className="bg-slate-50 rounded-lg p-5 border border-slate-100 text-sm space-y-2 max-w-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  <h4 className="font-bold text-slate-700 uppercase tracking-wider text-xs">Payment Instructions</h4>
-                </div>
-                {data.bankDetails.accountName && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Beneficiary</span>
-                    <span className="font-medium text-slate-900">{data.bankDetails.accountName}</span>
-                  </div>
-                )}
-                {data.bankDetails.bankName && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Bank Name</span>
-                    <span className="font-medium text-slate-900">{data.bankDetails.bankName}</span>
-                  </div>
-                )}
-                {data.bankDetails.location && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Location / Branch</span>
-                    <span className="font-medium text-slate-900">{data.bankDetails.location}</span>
-                  </div>
-                )}
-                {data.bankDetails.iban && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">IBAN</span>
-                    <span className="font-mono text-slate-700">{data.bankDetails.iban}</span>
-                  </div>
-                )}
-                {!data.bankDetails.iban && data.bankDetails.accountNumber && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Account No</span>
-                    <span className="font-mono text-slate-700">{data.bankDetails.accountNumber}</span>
-                  </div>
-                )}
-                {data.bankDetails.swift && (
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">SWIFT / BIC</span>
-                    <span className="font-mono text-slate-700">{data.bankDetails.swift}</span>
-                  </div>
-                )}
+            {/* Hardcoded Payment Instructions */}
+            <div className="mt-6 text-[10px] leading-[1.3] text-[#002855] font-sans tracking-tight">
+              <div className="font-black uppercase mb-0.5 tracking-tight text-[11px]">
+                QNB FINANSBANK - TURKEY <span className="ml-2">SWIFT CODE: FNNBTRISKUS</span>
               </div>
-            )}
+              <div className="italic font-medium">
+                <div>
+                  <span className="inline-block w-[65px]">EURO IBAN :</span>
+                  <span className="font-sans not-italic">TR93 0011 1000 0000 0014 3159 37</span>
+                </div>
+                <div>
+                  <span className="inline-block w-[65px]">USD IBAN &nbsp;:</span>
+                  <span className="font-sans not-italic">TR82 0011 1000 0000 0014 3159 41</span>
+                </div>
+              </div>
+
+              <div className="mt-1 flex items-start">
+                <span className="font-black w-[42px] shrink-0">Adres:</span>
+                <span className="font-medium">Türkmen Mah. Mehmet Sargın Sk. No:2A KUŞADASI - TÜRKİYE</span>
+              </div>
+
+              <div className="flex items-start">
+                <span className="font-black w-[42px] shrink-0">Tel &nbsp;&nbsp;&nbsp;:</span>
+                <span className="font-medium">+9 (0.256) 614 33 33 - Fax: +9 (0.256) 612 44 99</span>
+              </div>
+
+              <div className="font-medium mt-0.5">
+                info@medlifeassistance.com · Kuşadası V.D. H. No: 613 052 9361
+              </div>
+            </div>
           </div>
 
           {/* Digital Signature Section - Aligned with Totals */}
